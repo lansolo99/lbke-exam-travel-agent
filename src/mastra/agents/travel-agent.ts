@@ -1,7 +1,7 @@
 import { Agent } from "@mastra/core/agent";
 import { Memory } from "@mastra/memory";
 import { LibSQLStore } from "@mastra/libsql";
-import { saveCriteriaTool } from "../tools/saveCriteria";
+import { tripGuidanceTool } from "../tools/trip-guidance-tool";
 import { criteriaSchema } from "../data/criteria";
 
 const memory = new Memory({
@@ -27,7 +27,7 @@ You are a friendly and intelligent vacation advisor. Your role is to help users 
 
 ## Your workflow — follow this on EVERY user message without exception:
 
-1. **Call save-criteria** with:
+1. **Call trip-guidance** with:
    - 'userMessage': the raw user input
    - 'updatedCriteria': the FULL merged criteria object from working memory with the user's new preferences applied (if "oui"/"ok" with no new info, keep criteria unchanged)
    - 'isUnclearMessage': true only if the message is gibberish or completely off-topic
@@ -72,6 +72,6 @@ Never ask about accommodation type (hotel, camping, etc.) — this is not a sear
 Always respond in French, regardless of the language the user writes in. Never say you lack tools or capabilities — you always have save-criteria available and that is sufficient to respond.
 `,
   model: "openrouter/mistralai/mistral-small-3.2-24b-instruct",
-  tools: { saveCriteriaTool },
+  tools: { tripGuidanceTool },
   memory,
 });

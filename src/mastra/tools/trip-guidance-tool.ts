@@ -3,14 +3,14 @@ import { z } from "zod";
 import { criteriaSchema, type Criteria } from "../data/criteria";
 import { destinations } from "../data/destinations";
 
-// Maps criteria keys (from working memory) to the label strings used in the destinations catalog.
+// Maps criteria keys to the label strings used in the destinations catalog.
 // "acces_handicap" is excluded here — it maps to a dedicated field, not a label.
 const criteriaKeyToDestinationLabel: Record<string, string> = {
   plage: "plage",
   montagne: "montagne",
   ville: "ville",
   sport: "sport",
-  detente: "détente",
+  detente: "détente", // accent required to match the destinations data
 };
 
 type DestinationResult = {
@@ -48,12 +48,7 @@ function pickBestDestination(criteria: Criteria): DestinationResult | null {
       }
     }
 
-    return {
-      nom: destination.nom,
-      score,
-      accessibleHandicap: destination.accessibleHandicap,
-      matchedLabels,
-    };
+    return { nom: destination.nom, score, accessibleHandicap: destination.accessibleHandicap, matchedLabels };
   });
 
   const matches = scored
@@ -63,26 +58,25 @@ function pickBestDestination(criteria: Criteria): DestinationResult | null {
   return matches[0] ?? null;
 }
 
-// Complete pipeline.
+// The single Mastra tool for this agent.
+// Called on every user message — extracts criteria from the message and picks the best matching destination.
 export const tripGuidanceTool = createTool({
   id: "trip-guidance",
-  description:
-    "Call this on every user message. Validates criteria, picks the best matching destination, and tracks suggestion history.",
+  description: "Call this on every user message. Extracts travel criteria and picks the best matching destination.",
   inputSchema: z.object({
     userMessage: z.string().describe("The raw user message"),
-    updatedCriteria: criteriaSchema.describe(
-      "The FULL updated criteria object: merge current working memory state with what the user just expressed. " +
-        "true = positive preference, false = negative/contradiction, null = unchanged.",
+    criteria: criteriaSchema.describe(
+      "Criteria extracted from the user message. " +
+      "true = positive preference expressed, false = negative preference expressed, null = not mentioned."
     ),
     isUnclearMessage: z
       .boolean()
       .describe(
-        "Set to true if the message is gibberish (random characters, nonsense strings) or completely unrelated to travel. " +
-          "Set to false for valid messages even if they express no preference (e.g. 'oui', 'non', greetings).",
+        "Set to true if the message is gibberish or completely unrelated to travel. " +
+        "Set to false for valid messages even if they express no preference (e.g. 'oui', 'non', greetings)."
       ),
   }),
   outputSchema: z.object({
-    updatedCriteria: criteriaSchema,
     hasAnyCriteria: z.boolean(),
     isUnclearMessage: z.boolean(),
     topMatch: z
@@ -93,39 +87,11 @@ export const tripGuidanceTool = createTool({
         matchedLabels: z.array(z.string()),
       })
       .nullable(),
-    alreadySuggested: z.boolean(),
   }),
-  execute: async ({ updatedCriteria, isUnclearMessage }) => {
-    // Does the user have at least one positive preference?
-    const hasAnyCriteria = Object.entries(updatedCriteria)
-      .filter(([key]) => key !== "suggestedDestinations")
-      .some(([, value]) => value === true);
+  execute: async ({ criteria, isUnclearMessage }) => {
+    const hasAnyCriteria = Object.values(criteria).some((value) => value === true);
+    const topMatch = pickBestDestination(criteria);
 
-    // Find the best destination given current criteria
-    const topMatch = pickBestDestination(updatedCriteria);
-
-    // Was this destination already suggested earlier in this thread?
-    const previouslySuggested = updatedCriteria.suggestedDestinations ?? [];
-    const alreadySuggested =
-      topMatch !== null && previouslySuggested.includes(topMatch.nom);
-
-    // Append the new suggestion to the history (only if it's a first-time suggestion)
-    const updatedSuggestedDestinations =
-      topMatch !== null && !alreadySuggested
-        ? [...previouslySuggested, topMatch.nom]
-        : previouslySuggested;
-
-    const finalCriteria: Criteria = {
-      ...updatedCriteria,
-      suggestedDestinations: updatedSuggestedDestinations,
-    };
-
-    return {
-      updatedCriteria: finalCriteria,
-      hasAnyCriteria,
-      isUnclearMessage,
-      topMatch,
-      alreadySuggested,
-    };
+    return { hasAnyCriteria, isUnclearMessage, topMatch };
   },
 });

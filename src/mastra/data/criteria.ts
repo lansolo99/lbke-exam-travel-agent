@@ -7,16 +7,6 @@ export const criteriaSchema = z.object({
   sport: z.boolean().nullable().optional(),
   detente: z.boolean().nullable().optional(),
   acces_handicap: z.boolean().nullable().optional(),
-  suggestedDestinations: z.array(z.string()).optional(),
 });
 
 export type Criteria = z.infer<typeof criteriaSchema>;
-
-export const emptyCriteria: Criteria = {
-  plage: null,
-  montagne: null,
-  ville: null,
-  sport: null,
-  detente: null,
-  acces_handicap: null,
-};

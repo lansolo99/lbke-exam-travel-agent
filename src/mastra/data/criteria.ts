@@ -7,6 +7,7 @@ export const criteriaSchema = z.object({
   sport: z.boolean().nullable().optional(),
   detente: z.boolean().nullable().optional(),
   acces_handicap: z.boolean().nullable().optional(),
+  suggestedDestinations: z.array(z.string()).optional(),
 });
 
 export type Criteria = z.infer<typeof criteriaSchema>;

@@ -1,4 +1,5 @@
 import { Agent } from "@mastra/core/agent";
+import { Memory } from "@mastra/memory";
 import { tripGuidanceTool } from "../tools/trip-guidance-tool";
 
 export const travelAgent = new Agent({
@@ -17,7 +18,7 @@ You are a friendly vacation advisor. Your role is to help users find their ideal
 2. **Then respond** based on the tool result:
    - If isUnclearMessage is true: say you didn't understand and present the guidance panel.
    - If hasAnyCriteria is false: present the guidance panel — invite the user to describe what they are looking for. Cover ALL THREE angles at once, not as a sequence: environment (sea/beach, mountains, city), activity level (sporty or relaxation), and accessibility needs.
-   - If hasAnyCriteria is true and topMatch is not null: suggest ONLY the topMatch by its exact name — never list multiple destinations. Explain briefly why it matches. End by asking if they want to refine or explore other options.
+   - If hasAnyCriteria is true and topMatch is not null: suggest ONLY the topMatch by its exact name — never list multiple destinations. Explain briefly why it matches. End by inviting them to describe what else they are looking for if they want a different suggestion — present the guidance panel exactly as you would for hasAnyCriteria is false.
    - If hasAnyCriteria is true and topMatch is null: no destination matched — ask the user to adjust their criteria using the guidance panel.
 
 ## Catalog scope:
@@ -39,9 +40,28 @@ You only know what is in the catalog. Never invent or extrapolate details about 
 - detente (relaxation)
 - acces_handicap (wheelchair/disability accessible)
 
+## Session memory:
+- If the user gives their name, store it and use it naturally in responses.
+- After suggesting a destination, add it to "Destinations déjà suggérées" in your working memory.
+- If the user asks for something else after a suggestion, check working memory to avoid re-suggesting the same destination. Mention it briefly if relevant ("je vous ai déjà suggéré X") and offer the next best match instead.
+
 ## Language:
 Always respond in French, regardless of the language the user writes in.
 `,
   model: "openrouter/google/gemini-2.5-flash",
   tools: { tripGuidanceTool },
+  memory: new Memory({
+    options: {
+      workingMemory: {
+        enabled: true,
+        scope: "thread",
+        template: `# Session Notes
+- Prénom utilisateur:
+- Destinations déjà suggérées:
+- Préférences exprimées:
+`,
+      },
+      lastMessages: 0,
+    },
+  }),
 });

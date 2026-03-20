@@ -1,7 +1,21 @@
 import { Agent } from "@mastra/core/agent";
 import { Memory } from "@mastra/memory";
 import { LibSQLStore } from "@mastra/libsql";
+import { z } from "zod";
 import { tripGuidanceTool } from "../tools/trip-guidance-tool";
+
+const sessionSchema = z.object({
+  prenomUtilisateur: z.string().optional().describe("First name of the user if they provided it"),
+  destinationsDejaSuggerees: z.array(z.string()).optional().describe("Exact names of destinations already suggested to the user"),
+  preferencesExprimeees: z.object({
+    plage: z.boolean().nullable().optional(),
+    montagne: z.boolean().nullable().optional(),
+    ville: z.boolean().nullable().optional(),
+    sport: z.boolean().nullable().optional(),
+    detente: z.boolean().nullable().optional(),
+    acces_handicap: z.boolean().nullable().optional(),
+  }).optional().describe("User's expressed preferences: true = positive, false = negative, null/undefined = not mentioned"),
+});
 
 export const travelAgent = new Agent({
   id: "travel-agent",
@@ -41,10 +55,12 @@ You only know what is in the catalog. Never invent or extrapolate details about 
 - detente (relaxation)
 - acces_handicap (wheelchair/disability accessible)
 
-## Session memory:
-- If the user gives their name, store it and use it naturally in responses.
-- After suggesting a destination, add it to "Destinations déjà suggérées" in your working memory.
-- If the user asks for something else after a suggestion, check working memory to avoid re-suggesting the same destination. Mention it briefly if relevant ("je vous ai déjà suggéré X") and offer the next best match instead.
+## Session memory — update working memory after EVERY message without exception:
+- If the user gives their name, update prenomUtilisateur.
+- After suggesting a destination, append its exact name to destinationsDejaSuggerees.
+- Update preferencesExprimeees fields whenever a preference is expressed or changed (true/false/null).
+- You MUST call updateWorkingMemory after every single response, even if only one field changed.
+- Before suggesting a destination, check destinationsDejaSuggerees to avoid repeating one. If already suggested, mention it briefly ("je vous ai déjà suggéré X") and offer the next best match instead.
 
 ## Language:
 Always respond in French, regardless of the language the user writes in.
@@ -60,11 +76,7 @@ Always respond in French, regardless of the language the user writes in.
       workingMemory: {
         enabled: true,
         scope: "thread",
-        template: `# Session Notes
-- Prénom utilisateur:
-- Destinations déjà suggérées:
-- Préférences exprimées:
-`,
+        schema: sessionSchema,
       },
       lastMessages: 20,
     },

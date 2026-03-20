@@ -1,5 +1,6 @@
 import { Agent } from "@mastra/core/agent";
 import { Memory } from "@mastra/memory";
+import { LibSQLStore } from "@mastra/libsql";
 import { tripGuidanceTool } from "../tools/trip-guidance-tool";
 
 export const travelAgent = new Agent({
@@ -51,6 +52,10 @@ Always respond in French, regardless of the language the user writes in.
   model: "openrouter/google/gemini-2.5-flash",
   tools: { tripGuidanceTool },
   memory: new Memory({
+    storage: new LibSQLStore({
+      id: "travel-agent-memory",
+      url: "file:./mastra.db",
+    }),
     options: {
       workingMemory: {
         enabled: true,
@@ -61,7 +66,7 @@ Always respond in French, regardless of the language the user writes in.
 - Préférences exprimées:
 `,
       },
-      lastMessages: 0,
+      lastMessages: 20,
     },
   }),
 });

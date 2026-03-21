@@ -71,6 +71,7 @@ export const tripGuidanceTool = createTool({
     ),
     isUnclearMessage: z
       .boolean()
+      .default(false)
       .describe(
         "Set to true if the message is gibberish or completely unrelated to travel. " +
         "Set to false for valid messages even if they express no preference (e.g. 'oui', 'non', greetings)."

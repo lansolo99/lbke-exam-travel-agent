@@ -3,18 +3,30 @@ import { Memory } from "@mastra/memory";
 import { LibSQLStore } from "@mastra/libsql";
 import { z } from "zod";
 import { tripGuidanceTool } from "../tools/trip-guidance-tool";
+import { createPromptAlignmentScorerLLM } from "@mastra/evals/scorers/prebuilt";
 
 const sessionSchema = z.object({
-  prenomUtilisateur: z.string().optional().describe("First name of the user if they provided it"),
-  destinationsDejaSuggerees: z.array(z.string()).optional().describe("Exact names of destinations already suggested to the user"),
-  preferencesExprimeees: z.object({
-    plage: z.boolean().nullable().optional(),
-    montagne: z.boolean().nullable().optional(),
-    ville: z.boolean().nullable().optional(),
-    sport: z.boolean().nullable().optional(),
-    detente: z.boolean().nullable().optional(),
-    acces_handicap: z.boolean().nullable().optional(),
-  }).optional().describe("User's expressed preferences: true = positive, false = negative, null/undefined = not mentioned"),
+  prenomUtilisateur: z
+    .string()
+    .optional()
+    .describe("First name of the user if they provided it"),
+  destinationsDejaSuggerees: z
+    .array(z.string())
+    .optional()
+    .describe("Exact names of destinations already suggested to the user"),
+  preferencesExprimeees: z
+    .object({
+      plage: z.boolean().nullable().optional(),
+      montagne: z.boolean().nullable().optional(),
+      ville: z.boolean().nullable().optional(),
+      sport: z.boolean().nullable().optional(),
+      detente: z.boolean().nullable().optional(),
+      acces_handicap: z.boolean().nullable().optional(),
+    })
+    .optional()
+    .describe(
+      "User's expressed preferences: true = positive, false = negative, null/undefined = not mentioned",
+    ),
 });
 
 export const travelAgent = new Agent({
@@ -27,7 +39,7 @@ You are a friendly vacation advisor. Your role is to help users find their ideal
 
 1. **Call trip-guidance** with:
    - 'userMessage': the raw user input
-   - 'criteria': the criteria extracted from the user message only (true = positive, false = negative, null = not mentioned)
+   - 'criteria': the criteria extracted from the user message only (true = positive, false = negative, null = not mentioned). Be liberal in extraction — if the user mentions "ville", "city", "urban", set ville: true. If they mention "mer", "plage", "côte", "bord de mer", set plage: true. If they mention "montagne", "alpes", "ski", set montagne: true. If they mention "sport", "randonnée", "activité", set sport: true. If they mention "détente", "repos", "calme", "relaxation", set detente: true.
    - 'isUnclearMessage': true only if the message is gibberish or completely off-topic
 
 2. **Then respond** based on the tool result:
@@ -67,6 +79,16 @@ Always respond in French, regardless of the language the user writes in.
 `,
   model: "openrouter/google/gemini-2.5-flash",
   tools: { tripGuidanceTool },
+  scorers: {
+    // Checks the response stays aligned with system prompt rules (higher is better)
+    promptAlignment: {
+      scorer: createPromptAlignmentScorerLLM({
+        model: "openrouter/google/gemini-2.5-flash",
+        options: { evaluationMode: "system" },
+      }),
+      sampling: { type: "ratio", rate: 1 },
+    },
+  },
   memory: new Memory({
     storage: new LibSQLStore({
       id: "travel-agent-memory",

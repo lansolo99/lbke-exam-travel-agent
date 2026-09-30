@@ -8,10 +8,7 @@ const searchInputSchema = z.object({
     .describe(
       "Free-text location or environment the traveler is looking for (e.g. 'montagne', 'Chamonix', 'plage', 'ville'). Matched against the destination name and labels.",
     ),
-  maxPrice: z
-    .number()
-    .optional()
-    .describe("Maximum price per person, in euros. When omitted, no price filter is applied."),
+  maxPrice: z.number().describe("Maximum price per person, in euros."),
 });
 
 const travelOfferSchema = z.object({
@@ -36,7 +33,7 @@ function normalize(value: string): string {
 
 const searchDestinationsStep = createStep({
   id: "search-destinations",
-  description: "Filters the destination catalog by location keyword and optional max price per person.",
+  description: "Filters the destination catalog by location keyword and max price per person.",
   inputSchema: searchInputSchema,
   outputSchema: searchOutputSchema,
   execute: async ({ inputData }) => {
@@ -48,7 +45,7 @@ const searchDestinationsStep = createStep({
         const matchesLocation =
           normalize(destination.nom).includes(normalizedLocation) ||
           destination.labels.some((label) => normalize(label).includes(normalizedLocation));
-        const matchesPrice = maxPrice === undefined || destination.prixParPersonne <= maxPrice;
+        const matchesPrice = destination.prixParPersonne <= maxPrice;
         return matchesLocation && matchesPrice;
       })
       .sort((a, b) => a.prixParPersonne - b.prixParPersonne);
@@ -64,7 +61,7 @@ const searchDestinationsStep = createStep({
 
 export const travelSearchWorkflow = createWorkflow({
   id: "travel-search-workflow",
-  description: "Structured search over the travel catalog: takes a location and an optional max price, returns matching offers.",
+  description: "Structured search over the travel catalog: takes a location and a max price, returns matching offers.",
   inputSchema: searchInputSchema,
   outputSchema: searchOutputSchema,
 })

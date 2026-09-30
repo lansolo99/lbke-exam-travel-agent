@@ -8,9 +8,11 @@ import {
   SensitiveDataFilter,
 } from "@mastra/observability";
 import { travelAgent } from "./agents/travel-agent";
+import { travelSearchWorkflow } from "./workflows/travel-search-workflow";
 
 export const mastra = new Mastra({
   agents: { travelAgent },
+  workflows: { travelSearchWorkflow },
   storage: new LibSQLStore({
     id: "mastra-storage",
     // stores observability, scores, ... into persistent file storage

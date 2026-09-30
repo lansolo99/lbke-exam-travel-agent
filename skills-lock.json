@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "hub-agent-setup": {
+      "source": "Giskard-AI/giskard-skills",
+      "sourceType": "github",
+      "skillPath": "hub/hub-agent-setup/SKILL.md",
+      "computedHash": "124bcfb046bbf81dc61c7fab619ac1120471fd7f2e5de1c73186d84013d185a6"
+    },
     "mastra": {
       "source": "mastra-ai/skills",
       "sourceType": "github",

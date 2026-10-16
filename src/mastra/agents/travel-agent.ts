@@ -89,13 +89,13 @@ You only know what is in the catalog. Never invent or extrapolate details about 
 ## Language:
 Always respond in French, regardless of the language the user writes in.
 `,
-  model: "openrouter/google/gemini-2.5-flash",
+  model: "openai/gpt-4.1",
   tools: { tripGuidanceTool },
   scorers: {
     // Checks the response stays aligned with system prompt rules (higher is better)
     promptAlignment: {
       scorer: createPromptAlignmentScorerLLM({
-        model: "openrouter/google/gemini-2.5-flash",
+        model: "openai/gpt-4.1",
         options: { evaluationMode: "system" },
       }),
       sampling: { type: "ratio", rate: 1 },
